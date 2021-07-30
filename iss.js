@@ -28,4 +28,38 @@ const fetchMyIP = function(callback) {
   });
 };
 
-module.exports = { fetchMyIP };
+const fetchCoordsByIP = (ip, callback) => {
+  fetchMyIP((error, ip) => {
+    if (error) {
+      callback(error, null);
+      return;
+    }
+
+    if (ip) {
+      callback(null, ip);
+      request(`https://freegeoip.app/jsonss/${ip}`, (error, response, body) => {
+        // inside the request callback ...
+        // error can be set if invalid domain, user is offline, etc.
+        if (error) {
+          callback(error, null);
+          return;
+        }
+        // if non-200 status, assume server error
+        if (response.statusCode !== 200) {
+          const msg = `Status Code ${response.statusCode} when fetching IP. Response: ${body}`;
+          callback(Error(msg), null);
+          return;
+        }
+
+        const geoLocation = JSON.parse(body);
+        const coordinates = {
+          latitude: geoLocation.latitude,
+          longitude: geoLocation.longitude,
+        };
+        callback(null, coordinates);
+      });
+    }
+  });
+};
+
+module.exports = { fetchMyIP, fetchCoordsByIP };
